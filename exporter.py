@@ -77,6 +77,8 @@ def main():
     mqtt_address = os.environ.get("MQTT_ADDRESS", "127.0.0.1")
     mqtt_port = os.environ.get("MQTT_PORT", 1883)
     mqtt_keepalive = os.environ.get("MQTT_KEEPALIVE", 60)
+    mqtt_username = os.environ.get("MQTT_USERNAME")
+    mqtt_password = os.environ.get("MQTT_PASSWORD")
 
     # start prometheus server
     start_http_server(os.environ.get("PROMETHEUS_PORT", 9000))
@@ -84,6 +86,10 @@ def main():
     # define mqtt client
     client.on_connect = subscribe
     client.on_message = expose_metrics
+
+    # optionally set user and password
+    if mqtt_username is not None:
+        client.username_pw_set(mqtt_username, mqtt_password)
 
     # start the connection and the loop
     client.connect(mqtt_address, mqtt_port, mqtt_keepalive)
