@@ -27,30 +27,34 @@ def expose_metrics(client, userdata, msg):  # pylint: disable=W0613
     """Expose metrics to prometheus when a message has been published (callback)."""
     try:
         payload = json.loads(msg.payload)
-        topic = msg.topic.replace("/", "_")
+        device = msg.topic.replace("zigbee2mqtt/", "")
     except json.JSONDecodeError:
         LOG.warning('failed to parse as JSON: "%s"', msg.payload)
         return
 
-    topic_label = os.environ.get("TOPIC_LABEL", "topic")
+    device_label = os.environ.get("DEVICE_LABEL", "device")
     for metric, value in payload.items():
-        # we only expose numeric values
-        try:
-            metric_value = float(value)
-        except ValueError:
-            LOG.warning("Failed to convert %s: %s", metric, value)
-            continue
+        if value == 'ON':
+            metric_value = 1.0
+        elif value == 'OFF':
+            metric_value = 0.0
+        else:
+            try:
+                metric_value = float(value)
+            except ValueError:
+                LOG.warning("Failed to convert %s: %s", metric, value)
+                continue
 
         # create metric if does not exist
         prom_metric_name = f"{PREFIX}{metric}"
         if not prom_metrics.get(prom_metric_name):
             prom_metrics[prom_metric_name] = Gauge(
-                prom_metric_name, "metric generated from MQTT message.", [topic_label]
+                prom_metric_name, "metric generated from MQTT message.", [device_label]
             )
             LOG.info("creating prometheus metric: %s", prom_metric_name)
 
         # expose the metric to prometheus
-        prom_metrics[prom_metric_name].labels(**{topic_label: topic}).set(metric_value)
+        prom_metrics[prom_metric_name].labels(**{device_label: device}).set(metric_value)
         LOG.debug("new value for %s: %s", prom_metric_name, metric_value)
 
 
