@@ -81,7 +81,9 @@ def main():
     mqtt_password = os.environ.get("MQTT_PASSWORD")
 
     # start prometheus server
-    start_http_server(int(os.environ.get("PROMETHEUS_PORT", 9000)))
+    port = int(os.environ.get("PROMETHEUS_PORT", 9000))
+    LOG.info("Exposing metrics on port %d", port)
+    start_http_server(port)
 
     # define mqtt client
     client.on_connect = subscribe
